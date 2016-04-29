@@ -16,7 +16,6 @@ import java.io.ByteArrayOutputStream;
 
 public class MyWebcamExample {
     private ImagePanel imagePanel;
-    private int frame;
     private JFrame otherJframe;
 
     public static void main(String[] args) throws InterruptedException {
@@ -68,7 +67,6 @@ public class MyWebcamExample {
                     fImage.flipX();
                     BufferedImage bufferedImage = ImageUtilities.createBufferedImage(fImage);
                     imagePanel.setImage(bufferedImage);
-                    frame = 0;
                 } catch (Exception e) {
 
                 }

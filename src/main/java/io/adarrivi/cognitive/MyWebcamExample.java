@@ -72,7 +72,7 @@ public class MyWebcamExample {
                 }
             }
         });
-        window.setLayout(new GridLayout(2, 1));
+        window.setLayout(new GridLayout(1, 2));
         window.setResizable(true);
         window.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         window.pack();

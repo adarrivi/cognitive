@@ -4,9 +4,19 @@ package io.adarrivi.cognitive;
 import com.github.sarxos.webcam.Webcam;
 import com.github.sarxos.webcam.WebcamPanel;
 import com.github.sarxos.webcam.WebcamResolution;
+import org.openimaj.feature.local.list.LocalFeatureList;
+import org.openimaj.feature.local.matcher.FastBasicKeypointMatcher;
+import org.openimaj.feature.local.matcher.LocalFeatureMatcher;
+import org.openimaj.feature.local.matcher.consistent.ConsistentLocalFeatureMatcher2d;
 import org.openimaj.image.FImage;
 import org.openimaj.image.ImageUtilities;
+import org.openimaj.image.feature.local.engine.DoGSIFTEngine;
+import org.openimaj.image.feature.local.keypoints.Keypoint;
 import org.openimaj.image.processing.edges.CannyEdgeDetector;
+import org.openimaj.image.typography.hershey.HersheyFont;
+import org.openimaj.math.geometry.transforms.estimation.RobustAffineTransformEstimator;
+import org.openimaj.math.model.fit.RANSAC;
+import org.openimaj.util.pair.Pair;
 import rx.Observable;
 
 import javax.imageio.ImageIO;
@@ -15,12 +25,13 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 
 
 public class MyWebcamExample {
-    private ImagePanel imagePanel;
-    private JFrame otherJframe;
 
     public static void main(String[] args) throws InterruptedException {
         new MyWebcamExample();
@@ -28,7 +39,7 @@ public class MyWebcamExample {
 
     private WebcamObservable webcamObservable;
 
-    public MyWebcamExample() {
+    private MyWebcamExample() {
 
         Webcam webcam = Webcam.getDefault();
         webcam.setViewSize(WebcamResolution.VGA.getSize());
@@ -41,40 +52,69 @@ public class MyWebcamExample {
         JFrame window = new JFrame("Test webcam panel");
         window.add(panel);
 
-        otherJframe = new JFrame("Other Jframe");
-
-        imagePanel = new ImagePanel(webcam.getImage());
+        ImagePanel imagePanel = new ImagePanel(webcam.getImage());
+        ImagePanel imagePanel2 = new ImagePanel(webcam.getImage());
         window.add(imagePanel);
+        window.add(imagePanel2);
         webcamObservable = new WebcamObservable(webcam);
 
-        Observable.create(webcamObservable)
-                .sample(100, TimeUnit.MILLISECONDS)
-                .subscribe(imageBuffer -> {
-                    try {
-                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                        ImageIO.write(imageBuffer, "png", baos);
-                        //black and white image
-                        FImage fImage = ImageUtilities.readF(new ByteArrayInputStream(baos.toByteArray()));
-                        fImage.processInplace(new CannyEdgeDetector(0.6f));
-                        fImage.flipX();
-                        BufferedImage bufferedImage = ImageUtilities.createBufferedImage(fImage);
-                        imagePanel.setImage(bufferedImage);
-                    } catch (Exception e) {
+        LocalFeatureMatcher<Keypoint> matcher;
+        DoGSIFTEngine engine;
+        RobustAffineTransformEstimator modelFitter = new RobustAffineTransformEstimator(5.0, 1500,
+                new RANSAC.PercentageInliersStoppingCondition(0.5));
+        matcher = new ConsistentLocalFeatureMatcher2d<>(
+                new FastBasicKeypointMatcher<>(8), modelFitter);
 
+        try {
+            FImage query = ImageUtilities.readF(Paths.get(ClassLoader.getSystemResource("lips.png").toURI()).toFile());
+//            FImage query = ImageUtilities.readF(Paths.get(ClassLoader.getSystemResource("left-eye.png").toURI()).toFile());
+            engine = new DoGSIFTEngine();
+            LocalFeatureList<Keypoint> queryKeypoints = engine.findFeatures(query);
+            matcher.setModelFeatures(queryKeypoints);
+        } catch (URISyntaxException | IOException e) {
+            throw new RuntimeException(e);
+        }
+        newEdgeObservable()
+                .map(fImage -> {
+                    if (matcher.findMatches(engine.findFeatures(fImage))) {
+                        for (Pair<Keypoint> match : matcher.getMatches()) {
+                            Keypoint keypoint = match.firstObject();
+                            fImage.drawText("X", (int) keypoint.getLocation().getX(), (int) keypoint.getLocation().getY(), HersheyFont.ASTROLOGY, 20, 1f);
+
+                        }
                     }
-                });
+                    return fImage;
+                })
+                .map(ImageUtilities::createBufferedImage)
+                .subscribe(imagePanel::setImage);
+        newEdgeObservable()
+                .map(FImage::flipY)
+                .map(ImageUtilities::createBufferedImage)
+                .subscribe(imagePanel2::setImage);
 
-        window.setLayout(new GridLayout(1, 2));
+
+        window.setLayout(new GridLayout(1, 3));
         window.setResizable(true);
         window.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         window.pack();
         window.setVisible(true);
+    }
 
-        otherJframe.setResizable(true);
+    private Observable<FImage> newEdgeObservable() {
+        return Observable.create(webcamObservable)
+                .sample(100, TimeUnit.MILLISECONDS)
+                .map(this::toFImage)
+                .map(FImage::flipX)
+                .map(fImage -> fImage.processInplace(new CannyEdgeDetector()));
+    }
 
-        otherJframe.setResizable(true);
-        otherJframe.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        otherJframe.pack();
-        otherJframe.setVisible(true);
+    private FImage toFImage(BufferedImage bufferedImage) {
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(bufferedImage, "png", baos);
+            return ImageUtilities.readF(new ByteArrayInputStream(baos.toByteArray()));
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 }

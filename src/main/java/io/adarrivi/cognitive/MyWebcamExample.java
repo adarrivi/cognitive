@@ -18,6 +18,8 @@ import org.openimaj.math.geometry.transforms.estimation.RobustAffineTransformEst
 import org.openimaj.math.model.fit.RANSAC;
 import org.openimaj.util.pair.Pair;
 import rx.Observable;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -74,22 +76,29 @@ public class MyWebcamExample {
         } catch (URISyntaxException | IOException e) {
             throw new RuntimeException(e);
         }
-        newEdgeObservable()
-                .map(fImage -> {
-                    if (matcher.findMatches(engine.findFeatures(fImage))) {
-                        for (Pair<Keypoint> match : matcher.getMatches()) {
-                            Keypoint keypoint = match.firstObject();
-                            fImage.drawText("X", (int) keypoint.getLocation().getX(), (int) keypoint.getLocation().getY(), HersheyFont.ASTROLOGY, 20, 1f);
 
-                        }
-                    }
-                    return fImage;
-                })
+        Func1<FImage, FImage> pointDetection = fImage -> {
+            if (matcher.findMatches(engine.findFeatures(fImage))) {
+
+                for (Pair<Keypoint> match : matcher.getMatches()) {
+                    Keypoint keypoint = match.firstObject();
+                    fImage.drawText("X", (int) keypoint.getLocation().getX(), (int) keypoint.getLocation().getY(), HersheyFont.ASTROLOGY, 20, 1f);
+
+                }
+            }
+            return fImage;
+        };
+        newEdgeObservable(1000)
+                .map(pointDetection)
                 .map(ImageUtilities::createBufferedImage)
+                .subscribeOn(Schedulers.computation())
                 .subscribe(imagePanel::setImage);
-        newEdgeObservable()
-                .map(FImage::flipY)
+
+
+        newEdgeObservable(100)
                 .map(ImageUtilities::createBufferedImage)
+                // why?
+//                .subscribeOn(Schedulers.computation())
                 .subscribe(imagePanel2::setImage);
 
 
@@ -100,9 +109,9 @@ public class MyWebcamExample {
         window.setVisible(true);
     }
 
-    private Observable<FImage> newEdgeObservable() {
+    private Observable<FImage> newEdgeObservable(long millis) {
         return Observable.create(webcamObservable)
-                .sample(100, TimeUnit.MILLISECONDS)
+                .sample(millis, TimeUnit.MILLISECONDS)
                 .map(this::toFImage)
                 .map(FImage::flipX)
                 .map(fImage -> fImage.processInplace(new CannyEdgeDetector()));

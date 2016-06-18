@@ -1,9 +1,9 @@
 package io.adarrivi.cognitive;
 
 
-import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testng.annotations.Test;
 import rx.Observable;
 import rx.functions.Action1;
 import rx.functions.Func1;

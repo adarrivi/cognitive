@@ -1,4 +1,4 @@
-package io.adarrivi.cognitive;
+package io.adarrivi.cognitive.vision;
 
 import com.github.sarxos.webcam.Webcam;
 import com.github.sarxos.webcam.WebcamEvent;
@@ -8,11 +8,11 @@ import rx.Subscriber;
 
 import java.awt.image.BufferedImage;
 
-public class WebcamObservable implements Observable.OnSubscribe<BufferedImage> {
+public class WebCamObservable implements Observable.OnSubscribe<BufferedImage> {
 
     private final Webcam webcam;
 
-    public WebcamObservable(Webcam webcam) {
+    public WebCamObservable(Webcam webcam) {
         this.webcam = webcam;
     }
 

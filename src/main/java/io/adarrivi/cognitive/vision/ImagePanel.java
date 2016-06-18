@@ -1,4 +1,4 @@
-package io.adarrivi.cognitive;
+package io.adarrivi.cognitive.vision;
 
 import javax.swing.*;
 import java.awt.*;

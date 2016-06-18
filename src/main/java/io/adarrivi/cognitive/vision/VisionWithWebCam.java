@@ -1,4 +1,4 @@
-package io.adarrivi.cognitive;
+package io.adarrivi.cognitive.vision;
 
 
 import com.github.sarxos.webcam.Webcam;
@@ -33,15 +33,15 @@ import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 
 
-public class MyWebcamExample {
+public class VisionWithWebCam {
 
     public static void main(String[] args) throws InterruptedException {
-        new MyWebcamExample();
+        new VisionWithWebCam();
     }
 
-    private WebcamObservable webcamObservable;
+    private WebCamObservable webCamObservable;
 
-    private MyWebcamExample() {
+    private VisionWithWebCam() {
 
         Webcam webcam = Webcam.getDefault();
         webcam.setViewSize(WebcamResolution.VGA.getSize());
@@ -58,7 +58,7 @@ public class MyWebcamExample {
         ImagePanel imagePanel2 = new ImagePanel(webcam.getImage());
         window.add(imagePanel);
         window.add(imagePanel2);
-        webcamObservable = new WebcamObservable(webcam);
+        webCamObservable = new WebCamObservable(webcam);
 
         LocalFeatureMatcher<Keypoint> matcher;
         DoGSIFTEngine engine;
@@ -110,7 +110,7 @@ public class MyWebcamExample {
     }
 
     private Observable<FImage> newEdgeObservable(long millis) {
-        return Observable.create(webcamObservable)
+        return Observable.create(webCamObservable)
                 .sample(millis, TimeUnit.MILLISECONDS)
                 .map(this::toFImage)
                 .map(FImage::flipX)

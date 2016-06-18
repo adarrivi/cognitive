@@ -9,9 +9,13 @@ import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
-public class CognitiveApplicationTest {
+public class ReactiveObserverTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(CognitiveApplicationTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(ReactiveObserverTest.class);
+
+    private int expensiveOps;
+    private int cheapOps;
+    private int firstOps;
 
     private void sleepThread() {
         logger.info("Sleeping thread...");
@@ -21,12 +25,6 @@ public class CognitiveApplicationTest {
             e.printStackTrace();
         }
     }
-
-
-    private int expensiveOps;
-    private int cheapOps;
-    private int firstOps;
-
     @Test
     public void multithreadedOneOperation() {
         final Func1<Integer, Integer> firstOperation = integer -> {
